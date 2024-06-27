@@ -66,13 +66,14 @@ func main() {
 	// Get the account number (accNum) once
 	seqNum, accNum := getInitialSequence(acctaddress)
 
-	swapOnPool := func(poolID int) {
-		resp, _, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
+	swapOnPool := func(poolID int) string {
+		resp, txHash, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
 		if err != nil {
 			mu.Lock()
 			failedTxns++
 			mu.Unlock()
 			fmt.Printf("%s Node: %s, Error: %v\n", time.Now().Format("15:04:05"), RPCURL, err)
+			return ""
 		} else {
 			mu.Lock()
 			successfulTxns++
@@ -99,16 +100,28 @@ func main() {
 			} else {
 				// Increment the per-node sequence number if there was no mismatch
 				seqNum++
-				fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, seqNum)
+				//fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, seqNum)
 			}
+			return txHash
 		}
 	}
 
 	// Iterate over AllPoolIds and send transactions in rounds
 	for i := 0; i < len(AllPoolIds); i++ {
 		waitForNextBlock(acctaddress)
+		var roundTxHashes []string // To store tx hashes for the current round
 		for j := 0; j <= i; j++ {
-			swapOnPool(AllPoolIds[j])
+			txHash := swapOnPool(AllPoolIds[j])
+			if txHash != "" {
+				roundTxHashes = append(roundTxHashes, txHash)
+			}
+		}
+		// Report block height and tx hashes for the current round
+		currentHeight := retrieveStatus()
+		fmt.Printf("Round %d completed at block height %d\n", i+1, currentHeight)
+		fmt.Println("Successful transaction hashes for this round:")
+		for _, hash := range roundTxHashes {
+			fmt.Println(hash)
 		}
 	}
 

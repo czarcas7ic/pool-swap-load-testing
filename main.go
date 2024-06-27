@@ -43,6 +43,7 @@ func main() {
 	var mu sync.Mutex
 	// Declare a map to hold response codes and their counts
 	responseCodes := make(map[uint32]int)
+	var allTxHashes []string
 
 	// keyring
 	// read seed phrase
@@ -118,6 +119,7 @@ func main() {
 			txHash := swapOnPool(AllPoolIds[j])
 			if txHash != "" {
 				roundTxHashes = append(roundTxHashes, txHash)
+				allTxHashes = append(allTxHashes, txHash)
 			}
 		}
 		// Report block height and tx hashes for the current round
@@ -130,6 +132,29 @@ func main() {
 		fmt.Println()
 	}
 
+	// Query each transaction hash at the end
+	var failedTxHashes []string
+	for _, hash := range allTxHashes {
+		url := fmt.Sprintf("%s/tx?hash=0x%s", RPCURL, hash)
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Printf("Failed to query tx hash %s: %v", hash, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Failed to read response body for tx hash %s: %v", hash, err)
+			continue
+		}
+
+		code := gjson.Get(string(body), "result.tx_result.code").Int()
+		if code != 0 {
+			failedTxHashes = append(failedTxHashes, hash)
+		}
+	}
+
 	fmt.Println("successful transactions: ", successfulTxns)
 	fmt.Println("failed transactions: ", failedTxns)
 	totalTxns := successfulTxns + failedTxns
@@ -137,6 +162,12 @@ func main() {
 	for code, count := range responseCodes {
 		percentage := float64(count) / float64(totalTxns) * 100
 		fmt.Printf("Code %d: %d (%.2f%%)\n", code, count, percentage)
+	}
+
+	// Report failed transaction hashes
+	fmt.Printf("Failed transaction hashes (%d):\n", len(failedTxHashes))
+	for _, hash := range failedTxHashes {
+		fmt.Println(hash)
 	}
 }
 

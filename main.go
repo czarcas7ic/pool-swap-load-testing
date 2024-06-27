@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -125,7 +125,7 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Printf("Failed to read response body for tx hash %s: %v", hash, err)
 			continue
@@ -152,7 +152,7 @@ func setSequence(acctaddress string, config Config) int64 {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Failed to read response body: %v", err)
 	}
@@ -169,7 +169,7 @@ func retrieveStatus(config Config) int64 {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Failed to read response body: %v", err)
 	}
@@ -217,7 +217,7 @@ func readInConfig() Config {
 		log.Printf("Failed to open config file, using default values: %v", err)
 	} else {
 		defer configFile.Close()
-		byteValue, _ := ioutil.ReadAll(configFile)
+		byteValue, _ := io.ReadAll(configFile)
 		json.Unmarshal(byteValue, &config)
 	}
 

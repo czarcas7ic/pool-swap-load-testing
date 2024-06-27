@@ -102,7 +102,7 @@ func main() {
 				seqNum++
 				//fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, seqNum)
 			}
-			return string(resp.Hash)
+			return resp.Hash.String()
 		}
 	}
 

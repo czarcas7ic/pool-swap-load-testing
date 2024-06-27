@@ -70,9 +70,9 @@ func main() {
 	// Get the account number (accNum) once
 	_, accNum := getInitialSequence(acctaddress)
 
-	swapOnPool := func(poolID int, increment int) {
+	swapOnPool := func(poolID int) {
 		sequenceMu.Lock()
-		sequenceToUse := sequenceMap[RPCURL] + int64(increment)
+		sequenceToUse := sequenceMap[RPCURL]
 		sequenceMu.Unlock()
 
 		resp, _, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(sequenceToUse), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
@@ -120,7 +120,7 @@ func main() {
 	for i := 0; i < len(AllPoolIds); i++ {
 		waitForNextBlock(acctaddress)
 		for j := 0; j <= i; j++ {
-			swapOnPool(AllPoolIds[j], j)
+			swapOnPool(AllPoolIds[j])
 		}
 	}
 

@@ -37,10 +37,6 @@ var (
 )
 
 func main() {
-	// Create a map to store the sequence number for each node
-	sequenceMap := make(map[string]int64)
-	var sequenceMu sync.Mutex // Mutex to protect the sequenceMap
-
 	// tracking vars
 	var successfulTxns int
 	var failedTxns int
@@ -68,15 +64,10 @@ func main() {
 	reExpected := regexp.MustCompile(`expected (\d+)`)
 
 	// Get the account number (accNum) once
-	_, accNum := getInitialSequence(acctaddress)
-	setSequence(acctaddress, &sequenceMap, &sequenceMu)
+	seqNum, accNum := getInitialSequence(acctaddress)
 
 	swapOnPool := func(poolID int) {
-		sequenceMu.Lock()
-		sequenceToUse := sequenceMap[RPCURL]
-		sequenceMu.Unlock()
-
-		resp, _, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(sequenceToUse), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
+		resp, _, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
 		if err != nil {
 			mu.Lock()
 			failedTxns++
@@ -102,25 +93,20 @@ func main() {
 						log.Fatalf("Failed to convert sequence to integer: %v", err)
 					}
 					// Update the per-node sequence to the expected value
-					sequenceMu.Lock()
-					sequenceMap[RPCURL] = newSequence
-					sequenceMu.Unlock()
+					seqNum = newSequence
 					fmt.Printf("%s Node: %s, we had an account sequence mismatch, adjusting to %d\n", time.Now().Format("15:04:05"), RPCURL, newSequence)
 				}
 			} else {
 				// Increment the per-node sequence number if there was no mismatch
-				sequenceMu.Lock()
-				sequenceMap[RPCURL]++
-				sequenceMu.Unlock()
-				fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, sequenceMap[RPCURL])
+				seqNum++
+				fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, seqNum)
 			}
 		}
 	}
 
 	// Iterate over AllPoolIds and send transactions in rounds
 	for i := 0; i < len(AllPoolIds); i++ {
-		waitForNextBlock()
-		setSequence(acctaddress, &sequenceMap, &sequenceMu)
+		waitForNextBlock(acctaddress)
 		for j := 0; j <= i; j++ {
 			swapOnPool(AllPoolIds[j])
 		}
@@ -136,7 +122,7 @@ func main() {
 	}
 }
 
-func setSequence(acctaddress string, sequenceMap *map[string]int64, sequenceMu *sync.Mutex) {
+func setSequence(acctaddress string) int64 {
 	url := fmt.Sprintf("%s/cosmos/auth/v1beta1/account_info/%s", LCDURL, acctaddress)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -150,9 +136,7 @@ func setSequence(acctaddress string, sequenceMap *map[string]int64, sequenceMu *
 	}
 
 	sequence := gjson.Get(string(body), "account.value.sequence").Int()
-	sequenceMu.Lock()
-	(*sequenceMap)[RPCURL] = sequence
-	sequenceMu.Unlock()
+	return sequence
 }
 
 func retrieveStatus() int64 {
@@ -172,7 +156,7 @@ func retrieveStatus() int64 {
 	return latestBlockHeight
 }
 
-func waitForNextBlock() {
+func waitForNextBlock(acctaddress string) {
 	initialHeight := int64(0)
 	for initialHeight == 0 {
 		initialHeight = retrieveStatus()
@@ -185,4 +169,6 @@ func waitForNextBlock() {
 		currentHeight = retrieveStatus()
 		time.Sleep(50 * time.Millisecond)
 	}
+
+	setSequence(acctaddress)
 }

@@ -3,7 +3,6 @@ module github.com/czarcas7ic/poolswaps
 go 1.22.3
 
 require (
-	github.com/BurntSushi/toml v1.2.1
 	github.com/cometbft/cometbft v0.38.7
 	github.com/cosmos/cosmos-sdk v0.50.7
 	github.com/osmosis-labs/osmosis/osmomath v0.0.13
@@ -70,7 +69,7 @@ require (
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
-	github.com/gogo/protobuf v1.3.3 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
@@ -170,14 +169,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace (
-	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
-	// stick with compatible version or x/exp in v0.47.x line
-	golang.org/x/exp => golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb
-	// stick with compatible version of rapid in v0.47.x line
-	pgregory.net/rapid => pgregory.net/rapid v0.5.5
-
-)
+// stick with compatible version of rapid in v0.47.x line
+replace pgregory.net/rapid => pgregory.net/rapid v0.5.5
 
 replace (
 	// TODO(https://github.com/cosmos/rosetta/issues/76): Rosetta requires cosmossdk.io/core v0.12.0 erroneously but
@@ -210,10 +203,9 @@ replace (
 	// replace as directed by sdk upgrading.md https://github.com/cosmos/cosmos-sdk/blob/393de266c8675dc16cc037c1a15011b1e990975f/UPGRADING.md?plain=1#L713
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 
-// // Local replaces commented for development
-// github.com/osmosis-labs/osmosis/osmomath => ./osmomath
-// github.com/osmosis-labs/osmosis/osmoutils => ./osmoutils
-// github.com/osmosis-labs/osmosis/x/epochs => ./x/epochs
-// github.com/osmosis-labs/osmosis/x/ibc-hooks => ./x/ibc-hooks
-
 )
+
+// exclusion so we use v1.0.0
+exclude github.com/coinbase/rosetta-sdk-go v0.7.9
+
+exclude github.com/gogo/protobuf v1.3.3

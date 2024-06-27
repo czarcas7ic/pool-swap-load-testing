@@ -36,6 +36,7 @@ func main() {
 
 	fmt.Printf("Using rpc URL: %s\n", config.RpcUrl)
 	fmt.Printf("Using lcd URL: %s\n", config.LcdUrl)
+	fmt.Println()
 
 	// get correct chain-id
 	chainID, err := getChainID(config.RpcUrl)
@@ -101,14 +102,17 @@ func main() {
 		fmt.Printf("Successful transaction submissions for this round (%d)\n", len(roundTxHashes))
 	}
 
+	fmt.Println()
 	fmt.Println("Total code 0 transactions at submission time: ", successfulTxns)
 	fmt.Println("Total non code 0 transactions at submission time: ", failedTxns)
+	fmt.Println()
 	totalTxns := successfulTxns + failedTxns
 	fmt.Println("Response code breakdown:")
 	for code, count := range responseCodes {
 		percentage := float64(count) / float64(totalTxns) * 100
 		fmt.Printf("Code %d: %d (%.2f%%)\n", code, count, percentage)
 	}
+	fmt.Println()
 
 	// Query each transaction hash at the end
 	var failedTxHashes []string
@@ -219,6 +223,9 @@ func readInConfig() Config {
 
 	// Combine all pool IDs
 	AllPoolIds = append(config.OsmoGammPoolIds, append(config.OsmoClPoolIds, config.OsmoCwPoolIds...)...)
+
+	fmt.Println("Using the following configuration:")
+	fmt.Println(config)
 
 	return config
 }

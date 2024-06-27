@@ -224,8 +224,18 @@ func readInConfig() Config {
 	// Combine all pool IDs
 	AllPoolIds = append(config.OsmoGammPoolIds, append(config.OsmoClPoolIds, config.OsmoCwPoolIds...)...)
 
-	fmt.Println("Using the following configuration:")
-	fmt.Println(config)
+	fmt.Println("Using the following configuration (if value wasn't provided, defaults are used):")
+	fmt.Println("OsmoGammPoolIds:", config.OsmoGammPoolIds)
+	fmt.Println("OsmoClPoolIds:", config.OsmoClPoolIds)
+	fmt.Println("OsmoCwPoolIds:", config.OsmoCwPoolIds)
+	fmt.Println("Mnemonic:", config.Mnemonic)
+	fmt.Println("RpcUrl:", config.RpcUrl)
+	fmt.Println("LcdUrl:", config.LcdUrl)
+	fmt.Println("GasPerByte:", config.GasPerByte)
+	fmt.Println("BaseGas:", config.BaseGas)
+	fmt.Println("Denom:", config.Denom)
+	fmt.Println("GasLow:", config.GasLow)
+	fmt.Println("Precision:", config.Precision)
 
 	return config
 }

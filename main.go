@@ -19,21 +19,21 @@ const (
 )
 
 var (
-	OsmoGammPoolIds = []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9, 725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560, 586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225}                                // 30 pools
-	OsmoClPoolIds   = []int{1252, 1135, 1093, 1134, 1090, 1133, 1248, 1323, 1094, 1095, 1263, 1590, 1096, 1265, 1098, 1097, 1092, 1464, 1400, 1388, 1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770} // 30 pools
-	OsmoCwPoolIds   = []int{1463, 1575, 1584, 1642, 1643}
-	// OsmoGammPoolIds = []int{1, 712} // 30 pools
-	// OsmoClPoolIds   = []int{1252}   // 30 pools
-	// OsmoCwPoolIds   = []int{1463}   // 5 pools
-	AllPoolIds = append(OsmoGammPoolIds, append(OsmoClPoolIds, OsmoCwPoolIds...)...)
-	Mnemonic   = []byte("notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius") // lo-test2
-	RPCURL     = "http://localhost:26657"
-	LCDURL     = "http://localhost:1317"
-	GasPerByte = 20
-	BaseGas    = 120000
-	Denom      = "uosmo"
-	GasLow     = int64(25)
-	Precision  = int64(4)
+	// OsmoGammPoolIds = []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9, 725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560, 586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225}                                // 30 pools
+	// OsmoClPoolIds   = []int{1252, 1135, 1093, 1134, 1090, 1133, 1248, 1323, 1094, 1095, 1263, 1590, 1096, 1265, 1098, 1097, 1092, 1464, 1400, 1388, 1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770} // 30 pools
+	// OsmoCwPoolIds   = []int{1463, 1575, 1584, 1642, 1643}
+	OsmoGammPoolIds = []int{1, 712, 704, 812, 678}
+	OsmoClPoolIds   = []int{1252} // 30 pools
+	OsmoCwPoolIds   = []int{1463} // 5 pools
+	AllPoolIds      = append(OsmoGammPoolIds, append(OsmoClPoolIds, OsmoCwPoolIds...)...)
+	Mnemonic        = []byte("notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius") // lo-test2
+	RPCURL          = "http://localhost:26657"
+	LCDURL          = "http://localhost:1317"
+	GasPerByte      = 20
+	BaseGas         = 300000
+	Denom           = "uosmo"
+	GasLow          = int64(25)
+	Precision       = int64(4)
 )
 
 func main() {
@@ -67,42 +67,46 @@ func main() {
 	seqNum, accNum := getInitialSequence(acctaddress)
 
 	swapOnPool := func(poolID int) string {
-		resp, _, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
-		if err != nil {
-			mu.Lock()
-			failedTxns++
-			mu.Unlock()
-			fmt.Printf("%s Node: %s, Error: %v\n", time.Now().Format("15:04:05"), RPCURL, err)
-			return ""
-		} else {
-			mu.Lock()
-			successfulTxns++
-			mu.Unlock()
-			if resp != nil {
-				// Increment the count for this response code
+		for {
+			resp, _, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
+			if err != nil {
 				mu.Lock()
-				responseCodes[resp.Code]++
+				failedTxns++
 				mu.Unlock()
-			}
-
-			match := reMismatch.MatchString(resp.Log)
-			if match {
-				matches := reExpected.FindStringSubmatch(resp.Log)
-				if len(matches) > 1 {
-					newSequence, err := strconv.ParseInt(matches[1], 10, 64)
-					if err != nil {
-						log.Fatalf("Failed to convert sequence to integer: %v", err)
-					}
-					// Update the per-node sequence to the expected value
-					seqNum = newSequence
-					fmt.Printf("%s Node: %s, we had an account sequence mismatch, adjusting to %d\n", time.Now().Format("15:04:05"), RPCURL, newSequence)
-				}
+				fmt.Printf("%s Node: %s, Error: %v\n", time.Now().Format("15:04:05"), RPCURL, err)
+				return ""
 			} else {
-				// Increment the per-node sequence number if there was no mismatch
-				seqNum++
-				//fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, seqNum)
+				mu.Lock()
+				successfulTxns++
+				mu.Unlock()
+				if resp != nil {
+					// Increment the count for this response code
+					mu.Lock()
+					responseCodes[resp.Code]++
+					mu.Unlock()
+				}
+
+				match := reMismatch.MatchString(resp.Log)
+				if match {
+					matches := reExpected.FindStringSubmatch(resp.Log)
+					if len(matches) > 1 {
+						newSequence, err := strconv.ParseInt(matches[1], 10, 64)
+						if err != nil {
+							log.Fatalf("Failed to convert sequence to integer: %v", err)
+						}
+						// Update the per-node sequence to the expected value
+						seqNum = newSequence
+						fmt.Printf("%s Node: %s, we had an account sequence mismatch, adjusting to %d\n", time.Now().Format("15:04:05"), RPCURL, newSequence)
+						// Retry the transaction with the new sequence number
+						continue
+					}
+				} else {
+					// Increment the per-node sequence number if there was no mismatch
+					seqNum++
+					//fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, seqNum)
+				}
+				return resp.Hash.String()
 			}
-			return resp.Hash.String()
 		}
 	}
 

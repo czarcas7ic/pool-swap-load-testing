@@ -30,7 +30,7 @@ var (
 	RPCURL     = "http://localhost:26657"
 	LCDURL     = "http://localhost:1317"
 	GasPerByte = 20
-	BaseGas    = 750000 // With 200M block gas limit, can do 266 pools in one block. If you want more, add some logic to use more on CW pools
+	BaseGas    = 710000 // With 200M block gas limit, can do 266 pools in one block. If you want more, add some logic to use more on CW pools
 	Denom      = "uosmo"
 	GasLow     = int64(25)
 	Precision  = int64(4)

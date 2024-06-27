@@ -28,9 +28,6 @@ func main() {
 
 	config := readInConfig()
 	privkey, pubKey, acctaddress := getPrivKey(config.Mnemonic)
-
-	fmt.Printf("Using rpc URL: %s\n", config.RpcUrl)
-	fmt.Printf("Using lcd URL: %s\n", config.LcdUrl)
 	fmt.Println()
 
 	chainID, err := getChainID(config.RpcUrl)
@@ -183,17 +180,28 @@ func waitForNextBlock(acctaddress string, config Config) {
 
 func readInConfig() Config {
 	config := Config{
-		OsmoGammPoolIds: []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9, 725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560, 586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225},                                // 30 pools
-		OsmoClPoolIds:   []int{1252, 1135, 1093, 1134, 1090, 1133, 1248, 1323, 1094, 1095, 1263, 1590, 1096, 1265, 1098, 1097, 1092, 1464, 1400, 1388, 1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770}, // 30 pools
-		OsmoCwPoolIds:   []int{1463, 1575, 1584, 1642, 1643},
-		Mnemonic:        "notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius",
-		RpcUrl:          "http://localhost:26657",
-		LcdUrl:          "http://localhost:1317",
-		GasPerByte:      20,
-		BaseGas:         710000,
-		Denom:           "uosmo",
-		GasLow:          25,
-		Precision:       4,
+		OsmoGammPoolIds: []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9,
+			725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560,
+			586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225,
+			2, 1020, 789, 816, 674, 608, 1036, 1226, 899, 907,
+			605, 1738, 1827, 571, 626, 1320, 1046, 602, 481, 42,
+			15, 800, 777, 7, 924, 648, 1173, 900, 597, 1408,
+			627, 1249, 773, 601, 625, 651, 573, 641, 577, 644}, // 70 pools
+		OsmoClPoolIds: []int{1252, 1135, 1093, 1134, 1090, 1133, 1248, 1323, 1094, 1095,
+			1263, 1590, 1096, 1265, 1098, 1097, 1092, 1464, 1400, 1388,
+			1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770,
+			1110, 1750, 1111, 1361, 1670, 1221, 1623, 1101, 1088, 1245,
+			1105, 1779, 1434, 1477, 1483, 1620, 1100, 1091, 1108, 1109}, // 50 pools
+		OsmoCwPoolIds: []int{1616, 1635, 1461, 1514, 1643, 1642, 1463, 1584}, // 9 pools
+		// OsmoCwPoolIds: []int{1463, 1575, 1584, 1642, 1643},
+		Mnemonic:   "notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius",
+		RpcUrl:     "http://localhost:26657",
+		LcdUrl:     "http://localhost:1317",
+		GasPerByte: 20,
+		BaseGas:    710000,
+		Denom:      "uosmo",
+		GasLow:     25,
+		Precision:  4,
 	}
 
 	configFile, err := os.Open("config.json")

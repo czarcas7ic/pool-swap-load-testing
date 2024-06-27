@@ -69,7 +69,7 @@ func main() {
 
 	// Get the account number (accNum) once
 	_, accNum := getInitialSequence(acctaddress)
-	setSequence(acctaddress, sequenceMap, &sequenceMu)
+	setSequence(acctaddress, &sequenceMap, &sequenceMu)
 
 	swapOnPool := func(poolID int) {
 		sequenceMu.Lock()
@@ -119,8 +119,8 @@ func main() {
 
 	// Iterate over AllPoolIds and send transactions in rounds
 	for i := 0; i < len(AllPoolIds); i++ {
-		waitForNextBlock(acctaddress)
-		setSequence(acctaddress, sequenceMap, &sequenceMu)
+		waitForNextBlock()
+		setSequence(acctaddress, &sequenceMap, &sequenceMu)
 		for j := 0; j <= i; j++ {
 			swapOnPool(AllPoolIds[j])
 		}
@@ -136,7 +136,7 @@ func main() {
 	}
 }
 
-func setSequence(acctaddress string, sequenceMap map[string]int64, sequenceMu *sync.Mutex) {
+func setSequence(acctaddress string, sequenceMap *map[string]int64, sequenceMu *sync.Mutex) {
 	url := fmt.Sprintf("%s/cosmos/auth/v1beta1/account_info/%s", LCDURL, acctaddress)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -151,7 +151,7 @@ func setSequence(acctaddress string, sequenceMap map[string]int64, sequenceMu *s
 
 	sequence := gjson.Get(string(body), "account.value.sequence").Int()
 	sequenceMu.Lock()
-	sequenceMap[RPCURL] = sequence
+	(*sequenceMap)[RPCURL] = sequence
 	sequenceMu.Unlock()
 }
 
@@ -172,7 +172,7 @@ func retrieveStatus() int64 {
 	return latestBlockHeight
 }
 
-func waitForNextBlock(acctaddress string) {
+func waitForNextBlock() {
 	initialHeight := int64(0)
 	for initialHeight == 0 {
 		initialHeight = retrieveStatus()

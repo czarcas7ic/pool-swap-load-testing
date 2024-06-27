@@ -30,7 +30,7 @@ var (
 	RPCURL          = "http://localhost:26657"
 	LCDURL          = "http://localhost:1317"
 	GasPerByte      = 20
-	BaseGas         = 300000
+	BaseGas         = 100000
 	Denom           = "uosmo"
 	GasLow          = int64(25)
 	Precision       = int64(4)

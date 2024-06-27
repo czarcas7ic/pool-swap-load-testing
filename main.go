@@ -30,7 +30,7 @@ var (
 	RPCURL     = "http://localhost:26657"
 	LCDURL     = "http://localhost:1317"
 	GasPerByte = 20
-	BaseGas    = 300000
+	BaseGas    = 750000 // With 200M block gas limit, can do 266 pools in one block. If you want more, add some logic to use more on CW pools
 	Denom      = "uosmo"
 	GasLow     = int64(25)
 	Precision  = int64(4)
@@ -125,7 +125,7 @@ func main() {
 		// Report block height and tx hashes for the current round
 		currentHeight := retrieveStatus()
 		fmt.Printf("Round %d completed at block height %d\n", i+1, currentHeight)
-		fmt.Printf("Successful transaction submissions for this round (%d):", len(roundTxHashes))
+		fmt.Printf("Successful transaction submissions for this round (%d)\n", len(roundTxHashes))
 		// for _, hash := range roundTxHashes {
 		// 	fmt.Println(hash)
 		// }

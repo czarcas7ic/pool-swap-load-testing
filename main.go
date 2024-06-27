@@ -67,7 +67,7 @@ func main() {
 	seqNum, accNum := getInitialSequence(acctaddress)
 
 	swapOnPool := func(poolID int) string {
-		resp, txHash, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
+		resp, _, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
 		if err != nil {
 			mu.Lock()
 			failedTxns++
@@ -102,7 +102,7 @@ func main() {
 				seqNum++
 				//fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, seqNum)
 			}
-			return txHash
+			return string(resp.Hash)
 		}
 	}
 

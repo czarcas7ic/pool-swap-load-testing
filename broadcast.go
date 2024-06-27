@@ -189,11 +189,11 @@ func BroadcastTransaction(txBytes []byte, rpcEndpoint string) (*coretypes.Result
 		return nil, err
 	}
 
-	fmt.Println("other: ", res.Data)
-	fmt.Println("log: ", res.Log)
-	fmt.Println("code: ", res.Code)
-	fmt.Println("code: ", res.Codespace)
-	fmt.Println("txid: ", res.Hash)
+	// fmt.Println("other: ", res.Data)
+	// fmt.Println("log: ", res.Log)
+	// fmt.Println("code: ", res.Code)
+	// fmt.Println("code: ", res.Codespace)
+	// fmt.Println("txid: ", res.Hash)
 
 	return res, nil
 }

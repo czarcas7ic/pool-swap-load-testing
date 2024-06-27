@@ -192,16 +192,14 @@ func readInConfig() Config {
 			1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770,
 			1110, 1750, 1111, 1361, 1670, 1221, 1623, 1101, 1088, 1245,
 			1105, 1779, 1434, 1477, 1483, 1620, 1100, 1091, 1108, 1109}, // 50 pools
-		OsmoCwPoolIds: []int{1616, 1635, 1461, 1514, 1643, 1642, 1463, 1584}, // 9 pools
-		// OsmoCwPoolIds: []int{1463, 1575, 1584, 1642, 1643},
-		Mnemonic:   "notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius",
-		RpcUrl:     "http://localhost:26657",
-		LcdUrl:     "http://localhost:1317",
-		GasPerByte: 20,
-		BaseGas:    710000,
-		Denom:      "uosmo",
-		GasLow:     25,
-		Precision:  4,
+		OsmoCwPoolIds: []int{1616, 1635, 1461, 1643, 1642, 1463, 1584}, // 8 pools
+		Mnemonic:      "notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius",
+		RpcUrl:        "http://localhost:26657",
+		LcdUrl:        "http://localhost:1317",
+		GasPerByte:    20,
+		BaseGas:       710000,
+		Denom:         "uosmo",
+		FeeAmount:     100000,
 	}
 
 	configFile, err := os.Open("config.json")
@@ -225,8 +223,7 @@ func readInConfig() Config {
 	fmt.Println("GasPerByte:", config.GasPerByte)
 	fmt.Println("BaseGas:", config.BaseGas)
 	fmt.Println("Denom:", config.Denom)
-	fmt.Println("GasLow:", config.GasLow)
-	fmt.Println("Precision:", config.Precision)
+	fmt.Println("FeeAmount:", config.FeeAmount)
 
 	return config
 }

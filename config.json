@@ -16,7 +16,7 @@
         1105, 1779, 1434, 1477, 1483, 1620, 1100, 1091, 1108, 1109
     ],
     "OsmoCwPoolIds": [
-        1616, 1635, 1461, 1514, 1643, 1642, 1463, 1584
+        1616, 1635, 1461, 1643, 1642, 1463, 1584
     ],
     "Mnemonic": "notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius",
     "RpcUrl": "http://localhost:26657",
@@ -24,6 +24,5 @@
     "GasPerByte": 20,
     "BaseGas": 710000,
     "Denom": "uosmo",
-    "GasLow": 25,
-    "Precision": 4
+    "FeeAmount": 100000
 }

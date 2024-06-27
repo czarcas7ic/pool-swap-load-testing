@@ -73,11 +73,10 @@ func poolManagerSwapInViaRPC(rpcEndpoint string, chainID string, sequence, accnu
 	txBuilder.SetGasLimit(gasLimit)
 
 	// Calculate fee based on gas limit and a fixed gas price
-
 	// gasPrice := sdk.NewDecCoinFromDec(Denom, osmomath.NewDecWithPrec(GasLow, Precision)) // 0.00051 token per gas unit
-	// //	gasPrice := getGasPrice(config.Gas.Low, config.Denom)
 	// feeAmount := gasPrice.Amount.MulInt64(int64(gasLimit)).RoundInt()
-	feeAmount := osmomath.NewInt(100000)
+
+	feeAmount := osmomath.NewInt(config.FeeAmount)
 	feecoin := sdk.NewCoin(config.Denom, feeAmount)
 	txBuilder.SetFeeAmount(sdk.NewCoins(feecoin))
 	txBuilder.SetTimeoutHeight(0)

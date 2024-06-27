@@ -124,8 +124,7 @@ type Config struct {
 	GasPerByte      int    `json:"GasPerByte"`
 	BaseGas         int    `json:"BaseGas"`
 	Denom           string `json:"Denom"`
-	GasLow          int64  `json:"GasLow"`
-	Precision       int64  `json:"Precision"`
+	FeeAmount       int64  `json:"FeeAmount"`
 }
 
 type NodeInfo struct {

@@ -19,10 +19,10 @@ const (
 )
 
 var (
-	OsmoGammPoolIds = []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9, 725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560, 586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225}                                // 30 pools
+	// OsmoGammPoolIds = []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9, 725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560, 586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225}                                // 30 pools
 	OsmoClPoolIds   = []int{1252, 1135, 1093, 1134, 1090, 1133, 1248, 1323, 1094, 1095, 1263, 1590, 1096, 1265, 1098, 1097, 1092, 1464, 1400, 1388, 1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770} // 30 pools
 	OsmoCwPoolIds   = []int{1463, 1575, 1584, 1642, 1643}
-	// OsmoGammPoolIds = []int{1, 712, 704, 812, 678}
+	OsmoGammPoolIds = []int{}
 	// OsmoClPoolIds   = []int{1252} // 30 pools
 	// OsmoCwPoolIds   = []int{1463} // 5 pools
 	AllPoolIds = append(OsmoGammPoolIds, append(OsmoClPoolIds, OsmoCwPoolIds...)...)

@@ -19,76 +19,61 @@ var (
 )
 
 func main() {
-	// tracking vars
-	var successfulTxns int
-	var failedTxns int
-	var allTxHashes []string
+	var (
+		successfulTxns int
+		failedTxns     int
+		allTxHashes    []string
+		responseCodes  = make(map[uint32]int)
+	)
 
-	// Declare a map to hold response codes and their counts
-	responseCodes := make(map[uint32]int)
-
-	// Read in config file
 	config := readInConfig()
-
-	// keyring
-	// read seed phrase
 	privkey, pubKey, acctaddress := getPrivKey(config.Mnemonic)
 
 	fmt.Printf("Using rpc URL: %s\n", config.RpcUrl)
 	fmt.Printf("Using lcd URL: %s\n", config.LcdUrl)
 	fmt.Println()
 
-	// get correct chain-id
 	chainID, err := getChainID(config.RpcUrl)
 	if err != nil {
 		log.Fatalf("Failed to get chain ID: %v", err)
 	}
 
-	// Compile the regex outside the loop
 	reMismatch := regexp.MustCompile("account sequence mismatch")
 	reExpected := regexp.MustCompile(`expected (\d+)`)
 
-	// Get the account number (accNum) once
 	seqNum, accNum := getInitialSequence(acctaddress, config)
 
 	swapOnPool := func(poolID int) string {
-		for {
-			resp, _, err := poolManagerSwapInViaRPC(config.RpcUrl, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID), config)
-			if err != nil {
-				failedTxns++
-				fmt.Printf("%s Node: %s, Error: %v\n", time.Now().Format("15:04:05"), config.RpcUrl, err)
-				return ""
-			} else {
-				successfulTxns++
-				if resp != nil {
-					// Increment the count for this response code
-					responseCodes[resp.Code]++
-				}
 
-				match := reMismatch.MatchString(resp.Log)
-				if match {
-					matches := reExpected.FindStringSubmatch(resp.Log)
-					if len(matches) > 1 {
-						newSequence, err := strconv.ParseInt(matches[1], 10, 64)
-						if err != nil {
-							log.Fatalf("Failed to convert sequence to integer: %v", err)
-						}
-						// Update the per-node sequence to the expected value
-						seqNum = newSequence
-					}
-				} else {
-					// Increment the per-node sequence number if there was no mismatch
-					seqNum++
-				}
-				return resp.Hash.String()
-			}
+		resp, _, err := poolManagerSwapInViaRPC(config.RpcUrl, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID), config)
+		if err != nil {
+			failedTxns++
+			fmt.Printf("%s Node: %s, Error: %v\n", time.Now().Format("15:04:05"), config.RpcUrl, err)
+			return ""
 		}
+		successfulTxns++
+		if resp != nil {
+			responseCodes[resp.Code]++
+		}
+
+		if reMismatch.MatchString(resp.Log) {
+			matches := reExpected.FindStringSubmatch(resp.Log)
+			if len(matches) > 1 {
+				newSequence, err := strconv.ParseInt(matches[1], 10, 64)
+				if err != nil {
+					log.Fatalf("Failed to convert sequence to integer: %v", err)
+				}
+				seqNum = newSequence
+			}
+		} else {
+			seqNum++
+		}
+		return resp.Hash.String()
 	}
 
-	// Iterate over AllPoolIds and send transactions in rounds
 	for i := 0; i < len(AllPoolIds); i++ {
 		waitForNextBlock(acctaddress, config)
-		var roundTxHashes []string // To store tx hashes for the current round
+		var roundTxHashes []string
 		for j := 0; j <= i; j++ {
 			txHash := swapOnPool(AllPoolIds[j])
 			if txHash != "" {
@@ -96,12 +81,15 @@ func main() {
 				allTxHashes = append(allTxHashes, txHash)
 			}
 		}
-		// Report block height and tx hashes for the current round
 		currentHeight := retrieveStatus(config)
 		fmt.Printf("Round %d completed at block height %d\n", i+1, currentHeight)
 		fmt.Printf("Successful transaction submissions for this round (%d)\n", len(roundTxHashes))
 	}
 
+	printSummary(successfulTxns, failedTxns, responseCodes, allTxHashes, config)
+}
+
+func printSummary(successfulTxns, failedTxns int, responseCodes map[uint32]int, allTxHashes []string, config Config) {
 	fmt.Println()
 	fmt.Println("Total code 0 transactions at submission time: ", successfulTxns)
 	fmt.Println("Total non code 0 transactions at submission time: ", failedTxns)
@@ -114,7 +102,6 @@ func main() {
 	}
 	fmt.Println()
 
-	// Query each transaction hash at the end
 	var failedTxHashes []string
 	for _, hash := range allTxHashes {
 		url := fmt.Sprintf("%s/tx?hash=0x%s", config.RpcUrl, hash)
@@ -137,7 +124,6 @@ func main() {
 		}
 	}
 
-	// Report failed transaction hashes
 	fmt.Printf("After querying all tx hashes POST submission, the following txs actually failed (%d):\n", len(failedTxHashes))
 	for _, hash := range failedTxHashes {
 		fmt.Println(hash)
@@ -196,7 +182,6 @@ func waitForNextBlock(acctaddress string, config Config) {
 }
 
 func readInConfig() Config {
-	// Default values
 	config := Config{
 		OsmoGammPoolIds: []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9, 725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560, 586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225},                                // 30 pools
 		OsmoClPoolIds:   []int{1252, 1135, 1093, 1134, 1090, 1133, 1248, 1323, 1094, 1095, 1263, 1590, 1096, 1265, 1098, 1097, 1092, 1464, 1400, 1388, 1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770}, // 30 pools
@@ -211,7 +196,6 @@ func readInConfig() Config {
 		Precision:       4,
 	}
 
-	// Read config file
 	configFile, err := os.Open("config.json")
 	if err != nil {
 		log.Printf("Failed to open config file, using default values: %v", err)
@@ -221,7 +205,6 @@ func readInConfig() Config {
 		json.Unmarshal(byteValue, &config)
 	}
 
-	// Combine all pool IDs
 	AllPoolIds = append(config.OsmoGammPoolIds, append(config.OsmoClPoolIds, config.OsmoCwPoolIds...)...)
 
 	fmt.Println("Using the following configuration (if value wasn't provided, defaults are used):")

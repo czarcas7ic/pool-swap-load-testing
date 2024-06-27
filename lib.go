@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-func getInitialSequence(address string) (int64, int64) {
-	resp, err := httpGet(LCDURL + "/cosmos/auth/v1beta1/accounts/" + address)
+func getInitialSequence(address string, config Config) (int64, int64) {
+	resp, err := httpGet(config.LcdUrl + "/cosmos/auth/v1beta1/accounts/" + address)
 	if err != nil {
 		log.Printf("Failed to get initial sequence: %v", err)
 		return 0, 0

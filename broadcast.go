@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	cometrpc "github.com/cometbft/cometbft/rpc/client/http"
@@ -17,7 +15,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
@@ -37,57 +34,20 @@ var client = &http.Client{
 	},
 }
 
-// Memo represents the structure of the memo field in the transaction
-type Memo struct {
-	Forward Forward `json:"forward"`
-}
-
-// Forward contains details about the forwarding information
-type Forward struct {
-	Receiver string   `json:"receiver"`
-	Port     string   `json:"port"`
-	Channel  string   `json:"channel"`
-	Timeout  string   `json:"timeout"`
-	Retries  int      `json:"retries"`
-	Next     *Forward `json:"next,omitempty"`
-}
-
-// ToJSON converts the Memo struct to a JSON string
-func (m *Memo) ToJSON() (string, error) {
-	bytes, err := json.Marshal(m)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
-}
-
-// NewMemo creates a new Memo struct with default values
-func NewMemo(config Config) *Memo {
-	return &Memo{
-		Forward: Forward{
-			Receiver: strings.Repeat(config.IBCMemo, config.IBCMemoRepeat), // Note: This is an invalid bech32 address
-			Port:     "transfer",
-			Channel:  "channel-569",
-			Timeout:  "12h",
-			Retries:  10,
-		},
-	}
-}
-
 var cdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 
 func init() {
-	types.RegisterInterfaces(cdc.InterfaceRegistry())
+	sdk.RegisterInterfaces(cdc.InterfaceRegistry())
 }
 
-func poolManagerSwapInViaRPC(rpcEndpoint string, chainID string, sequence, accnum uint64, privKey cryptotypes.PrivKey, pubKey cryptotypes.PubKey, address string, poolId uint64) (response *coretypes.ResultBroadcastTx, txbody string, err error) {
+func poolManagerSwapInViaRPC(rpcEndpoint string, chainID string, sequence, accnum uint64, privKey cryptotypes.PrivKey, pubKey cryptotypes.PubKey, address string, poolId uint64, config Config) (response *coretypes.ResultBroadcastTx, txbody string, err error) {
 	encodingConfig := moduletestutil.MakeTestEncodingConfig()
 	poolmanagertypes.RegisterInterfaces(encodingConfig.InterfaceRegistry)
 
 	// Create a new TxBuilder.
 	txBuilder := encodingConfig.TxConfig.NewTxBuilder()
 
-	nonOsmoDenom := getNonOsmoAssetFromPool(poolId)
+	nonOsmoDenom := getNonOsmoAssetFromPool(poolId, config)
 
 	msg := &poolmanagertypes.MsgSwapExactAmountIn{
 		Sender: address,
@@ -109,7 +69,7 @@ func poolManagerSwapInViaRPC(rpcEndpoint string, chainID string, sequence, accnu
 
 	// Estimate gas limit based on transaction size
 	txSize := msg.Size()
-	gasLimit := uint64((txSize * GasPerByte) + BaseGas)
+	gasLimit := uint64((txSize * config.GasPerByte) + config.BaseGas)
 	txBuilder.SetGasLimit(gasLimit)
 
 	// Calculate fee based on gas limit and a fixed gas price
@@ -118,7 +78,7 @@ func poolManagerSwapInViaRPC(rpcEndpoint string, chainID string, sequence, accnu
 	// //	gasPrice := getGasPrice(config.Gas.Low, config.Denom)
 	// feeAmount := gasPrice.Amount.MulInt64(int64(gasLimit)).RoundInt()
 	feeAmount := osmomath.NewInt(100000)
-	feecoin := sdk.NewCoin(Denom, feeAmount)
+	feecoin := sdk.NewCoin(config.Denom, feeAmount)
 	txBuilder.SetFeeAmount(sdk.NewCoins(feecoin))
 	txBuilder.SetTimeoutHeight(0)
 
@@ -199,8 +159,8 @@ func BroadcastTransaction(txBytes []byte, rpcEndpoint string) (*coretypes.Result
 	return res, nil
 }
 
-func getNonOsmoAssetFromPool(poolID uint64) string {
-	url := fmt.Sprintf("%s/osmosis/poolmanager/v1beta1/pools/%d/total_pool_liquidity", LCDURL, poolID)
+func getNonOsmoAssetFromPool(poolID uint64, config Config) string {
+	url := fmt.Sprintf("%s/osmosis/poolmanager/v1beta1/pools/%d/total_pool_liquidity", config.LcdUrl, poolID)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Failed to get pool info: %v", err)

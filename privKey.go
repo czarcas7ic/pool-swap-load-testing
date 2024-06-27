@@ -8,17 +8,15 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func getPrivKey(mnemonic []byte) (cryptotypes.PrivKey, cryptotypes.PubKey, string) {
+func getPrivKey(mnemonic string) (cryptotypes.PrivKey, cryptotypes.PubKey, string) {
 	// Generate a Bip32 HD wallet for the mnemonic and a user supplied password
 	// create master key and derive first key for keyring
-	stringmem := string(mnemonic)
-
 	algo := hd.Secp256k1
 
 	// Derive the first key for keyring
 	// NOTE: this function had a bug, it was set to 118, then to 330.
 	// it is now configurable in the config file, to prevent this problem
-	derivedPriv, err := algo.Derive()(stringmem, "", fmt.Sprintf("m/44'/%d'/0'/0/0", 118))
+	derivedPriv, err := algo.Derive()(mnemonic, "", fmt.Sprintf("m/44'/%d'/0'/0/0", 118))
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +39,7 @@ func getPrivKey(mnemonic []byte) (cryptotypes.PrivKey, cryptotypes.PubKey, strin
 		panic(err)
 	}
 
-	fmt.Println("Address Ought to be", address)
+	fmt.Println("Seed provided translates to the following address: ", address)
 
 	return privKey, pubKey, address
 }

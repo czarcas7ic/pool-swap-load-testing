@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -12,49 +14,31 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-const (
-	BatchSize  = 100
-	MaxWorkers = 10000
-)
-
 var (
-	OsmoGammPoolIds = []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9, 725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560, 586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225}                                // 30 pools
-	OsmoClPoolIds   = []int{1252, 1135, 1093, 1134, 1090, 1133, 1248, 1323, 1094, 1095, 1263, 1590, 1096, 1265, 1098, 1097, 1092, 1464, 1400, 1388, 1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770} // 30 pools
-	OsmoCwPoolIds   = []int{1463, 1575, 1584, 1642, 1643}
-	// OsmoGammPoolIds = []int{}
-	// OsmoClPoolIds   = []int{1252} // 30 pools
-	// OsmoCwPoolIds   = []int{1463} // 5 pools
-	AllPoolIds = append(OsmoGammPoolIds, append(OsmoClPoolIds, OsmoCwPoolIds...)...)
-	Mnemonic   = []byte("notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius") // lo-test2
-	RPCURL     = "http://localhost:26657"
-	LCDURL     = "http://localhost:1317"
-	GasPerByte = 20
-	BaseGas    = 710000 // With 200M block gas limit, can do 266 pools in one block. If you want more, add some logic to use more on CW pools
-	Denom      = "uosmo"
-	GasLow     = int64(25)
-	Precision  = int64(4)
+	AllPoolIds = []int{}
 )
 
 func main() {
 	// tracking vars
 	var successfulTxns int
 	var failedTxns int
+	var allTxHashes []string
 
 	// Declare a map to hold response codes and their counts
 	responseCodes := make(map[uint32]int)
-	var allTxHashes []string
+
+	// Read in config file
+	config := readInConfig()
 
 	// keyring
 	// read seed phrase
-	// mnemonic, _ := os.ReadFile("seedphrase")
-	privkey, pubKey, acctaddress := getPrivKey(Mnemonic)
-	// Create an in-memory keyring
+	privkey, pubKey, acctaddress := getPrivKey(config.Mnemonic)
 
-	fmt.Printf("Using rpc URL: %s\n", RPCURL)
-	fmt.Println("Using lcd URL: ", LCDURL)
+	fmt.Printf("Using rpc URL: %s\n", config.RpcUrl)
+	fmt.Printf("Using lcd URL: %s\n", config.LcdUrl)
 
 	// get correct chain-id
-	chainID, err := getChainID(RPCURL)
+	chainID, err := getChainID(config.RpcUrl)
 	if err != nil {
 		log.Fatalf("Failed to get chain ID: %v", err)
 	}
@@ -64,14 +48,14 @@ func main() {
 	reExpected := regexp.MustCompile(`expected (\d+)`)
 
 	// Get the account number (accNum) once
-	seqNum, accNum := getInitialSequence(acctaddress)
+	seqNum, accNum := getInitialSequence(acctaddress, config)
 
 	swapOnPool := func(poolID int) string {
 		for {
-			resp, _, err := poolManagerSwapInViaRPC(RPCURL, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID))
+			resp, _, err := poolManagerSwapInViaRPC(config.RpcUrl, chainID, uint64(seqNum), uint64(accNum), privkey, pubKey, acctaddress, uint64(poolID), config)
 			if err != nil {
 				failedTxns++
-				fmt.Printf("%s Node: %s, Error: %v\n", time.Now().Format("15:04:05"), RPCURL, err)
+				fmt.Printf("%s Node: %s, Error: %v\n", time.Now().Format("15:04:05"), config.RpcUrl, err)
 				return ""
 			} else {
 				successfulTxns++
@@ -90,12 +74,10 @@ func main() {
 						}
 						// Update the per-node sequence to the expected value
 						seqNum = newSequence
-						fmt.Printf("%s Node: %s, we had an account sequence mismatch, adjusting to %d\n", time.Now().Format("15:04:05"), RPCURL, newSequence)
 					}
 				} else {
 					// Increment the per-node sequence number if there was no mismatch
 					seqNum++
-					//fmt.Printf("%s Node: %s, sequence: %d\n", time.Now().Format("15:04:05"), RPCURL, seqNum)
 				}
 				return resp.Hash.String()
 			}
@@ -104,7 +86,7 @@ func main() {
 
 	// Iterate over AllPoolIds and send transactions in rounds
 	for i := 0; i < len(AllPoolIds); i++ {
-		waitForNextBlock(acctaddress)
+		waitForNextBlock(acctaddress, config)
 		var roundTxHashes []string // To store tx hashes for the current round
 		for j := 0; j <= i; j++ {
 			txHash := swapOnPool(AllPoolIds[j])
@@ -114,19 +96,24 @@ func main() {
 			}
 		}
 		// Report block height and tx hashes for the current round
-		currentHeight := retrieveStatus()
+		currentHeight := retrieveStatus(config)
 		fmt.Printf("Round %d completed at block height %d\n", i+1, currentHeight)
 		fmt.Printf("Successful transaction submissions for this round (%d)\n", len(roundTxHashes))
-		// for _, hash := range roundTxHashes {
-		// 	fmt.Println(hash)
-		// }
-		// fmt.Println()
+	}
+
+	fmt.Println("Total code 0 transactions at submission time: ", successfulTxns)
+	fmt.Println("Total non code 0 transactions at submission time: ", failedTxns)
+	totalTxns := successfulTxns + failedTxns
+	fmt.Println("Response code breakdown:")
+	for code, count := range responseCodes {
+		percentage := float64(count) / float64(totalTxns) * 100
+		fmt.Printf("Code %d: %d (%.2f%%)\n", code, count, percentage)
 	}
 
 	// Query each transaction hash at the end
 	var failedTxHashes []string
 	for _, hash := range allTxHashes {
-		url := fmt.Sprintf("%s/tx?hash=0x%s", RPCURL, hash)
+		url := fmt.Sprintf("%s/tx?hash=0x%s", config.RpcUrl, hash)
 		resp, err := http.Get(url)
 		if err != nil {
 			log.Printf("Failed to query tx hash %s: %v", hash, err)
@@ -146,24 +133,15 @@ func main() {
 		}
 	}
 
-	fmt.Println("successful transactions: ", successfulTxns)
-	fmt.Println("failed transactions: ", failedTxns)
-	totalTxns := successfulTxns + failedTxns
-	fmt.Println("Response code breakdown:")
-	for code, count := range responseCodes {
-		percentage := float64(count) / float64(totalTxns) * 100
-		fmt.Printf("Code %d: %d (%.2f%%)\n", code, count, percentage)
-	}
-
 	// Report failed transaction hashes
-	fmt.Printf("Failed transaction hashes (%d):\n", len(failedTxHashes))
+	fmt.Printf("After querying all tx hashes POST submission, the following txs actually failed (%d):\n", len(failedTxHashes))
 	for _, hash := range failedTxHashes {
 		fmt.Println(hash)
 	}
 }
 
-func setSequence(acctaddress string) int64 {
-	url := fmt.Sprintf("%s/cosmos/auth/v1beta1/account_info/%s", LCDURL, acctaddress)
+func setSequence(acctaddress string, config Config) int64 {
+	url := fmt.Sprintf("%s/cosmos/auth/v1beta1/account_info/%s", config.LcdUrl, acctaddress)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Failed to get account info: %v", err)
@@ -179,8 +157,8 @@ func setSequence(acctaddress string) int64 {
 	return sequence
 }
 
-func retrieveStatus() int64 {
-	url := fmt.Sprintf("%s/status", RPCURL)
+func retrieveStatus(config Config) int64 {
+	url := fmt.Sprintf("%s/status", config.RpcUrl)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Failed to get status: %v", err)
@@ -196,19 +174,51 @@ func retrieveStatus() int64 {
 	return latestBlockHeight
 }
 
-func waitForNextBlock(acctaddress string) {
+func waitForNextBlock(acctaddress string, config Config) {
 	initialHeight := int64(0)
 	for initialHeight == 0 {
-		initialHeight = retrieveStatus()
+		initialHeight = retrieveStatus(config)
 		time.Sleep(50 * time.Millisecond)
 	}
 
 	targetHeight := initialHeight + 1
 	currentHeight := initialHeight
 	for currentHeight < targetHeight {
-		currentHeight = retrieveStatus()
+		currentHeight = retrieveStatus(config)
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	setSequence(acctaddress)
+	setSequence(acctaddress, config)
+}
+
+func readInConfig() Config {
+	// Default values
+	config := Config{
+		OsmoGammPoolIds: []int{1, 712, 704, 812, 678, 681, 796, 1057, 3, 9, 725, 832, 806, 840, 1241, 1687, 1632, 722, 584, 560, 586, 5, 604, 497, 992, 799, 1244, 744, 1075, 1225},                                // 30 pools
+		OsmoClPoolIds:   []int{1252, 1135, 1093, 1134, 1090, 1133, 1248, 1323, 1094, 1095, 1263, 1590, 1096, 1265, 1098, 1097, 1092, 1464, 1400, 1388, 1104, 1325, 1281, 1114, 1066, 1215, 1449, 1077, 1399, 1770}, // 30 pools
+		OsmoCwPoolIds:   []int{1463, 1575, 1584, 1642, 1643},
+		Mnemonic:        "notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius",
+		RpcUrl:          "http://localhost:26657",
+		LcdUrl:          "http://localhost:1317",
+		GasPerByte:      20,
+		BaseGas:         710000,
+		Denom:           "uosmo",
+		GasLow:          25,
+		Precision:       4,
+	}
+
+	// Read config file
+	configFile, err := os.Open("config.json")
+	if err != nil {
+		log.Printf("Failed to open config file, using default values: %v", err)
+	} else {
+		defer configFile.Close()
+		byteValue, _ := ioutil.ReadAll(configFile)
+		json.Unmarshal(byteValue, &config)
+	}
+
+	// Combine all pool IDs
+	AllPoolIds = append(config.OsmoGammPoolIds, append(config.OsmoClPoolIds, config.OsmoCwPoolIds...)...)
+
+	return config
 }

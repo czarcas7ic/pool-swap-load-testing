@@ -115,29 +115,17 @@ type Fee struct {
 }
 
 type Config struct {
-	Chain          string `toml:"chain"`
-	Channel        string `toml:"channel"`
-	Prefix         string `toml:"prefix"`
-	Bytes          int    `toml:"gas_per_byte"`
-	RevisionNumber int    `toml:"revision_number"`
-	TimeoutHeight  int    `toml:"timeout_height"`
-	RandMin        int    `toml:"rand_min"`
-	RandMax        int    `toml:"rand_max"`
-	Memo           string `toml:"memo"`
-	IBCMemo        string `toml:"ibc_memo"`
-	IBCMemoRepeat  int    `toml:"ibc_memo_repeat"`
-	IBCChannel     string `toml:"ibc_channel"`
-	BaseGas        int    `toml:"base_gas"`
-	Denom          string `toml:"denom"`
-	Slip44         int    `toml:"slip44"`
-	Gas            struct {
-		Low       int64 `toml:"low"`
-		Precision int64 `toml:"precision"`
-	} `toml:"gas"`
-	Nodes struct {
-		RPC []string `toml:"rpc"`
-		API string   `toml:"api"`
-	} `toml:"nodes"`
+	OsmoGammPoolIds []int  `json:"OsmoGammPoolIds"`
+	OsmoClPoolIds   []int  `json:"OsmoClPoolIds"`
+	OsmoCwPoolIds   []int  `json:"OsmoCwPoolIds"`
+	Mnemonic        string `json:"Mnemonic"`
+	RpcUrl          string `json:"RpcUrl"`
+	LcdUrl          string `json:"LcdUrl"`
+	GasPerByte      int    `json:"GasPerByte"`
+	BaseGas         int    `json:"BaseGas"`
+	Denom           string `json:"Denom"`
+	GasLow          int64  `json:"GasLow"`
+	Precision       int64  `json:"Precision"`
 }
 
 type NodeInfo struct {

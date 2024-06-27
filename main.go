@@ -123,7 +123,7 @@ func main() {
 		// Report block height and tx hashes for the current round
 		currentHeight := retrieveStatus()
 		fmt.Printf("Round %d completed at block height %d\n", i+1, currentHeight)
-		fmt.Println("Successful transaction hashes for this round:")
+		fmt.Printf("Successful transaction hashes for this round (%d):", len(roundTxHashes))
 		for _, hash := range roundTxHashes {
 			fmt.Println(hash)
 		}

@@ -69,6 +69,7 @@ func main() {
 
 	// Get the account number (accNum) once
 	_, accNum := getInitialSequence(acctaddress)
+	setSequence(acctaddress, sequenceMap, &sequenceMu)
 
 	swapOnPool := func(poolID int) {
 		sequenceMu.Lock()
@@ -119,6 +120,7 @@ func main() {
 	// Iterate over AllPoolIds and send transactions in rounds
 	for i := 0; i < len(AllPoolIds); i++ {
 		waitForNextBlock(acctaddress)
+		setSequence(acctaddress, sequenceMap, &sequenceMu)
 		for j := 0; j <= i; j++ {
 			swapOnPool(AllPoolIds[j])
 		}
@@ -134,7 +136,7 @@ func main() {
 	}
 }
 
-func setSequence(acctaddress string) int64 {
+func setSequence(acctaddress string, sequenceMap map[string]int64, sequenceMu *sync.Mutex) {
 	url := fmt.Sprintf("%s/cosmos/auth/v1beta1/account_info/%s", LCDURL, acctaddress)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -148,7 +150,9 @@ func setSequence(acctaddress string) int64 {
 	}
 
 	sequence := gjson.Get(string(body), "account.value.sequence").Int()
-	return sequence
+	sequenceMu.Lock()
+	sequenceMap[RPCURL] = sequence
+	sequenceMu.Unlock()
 }
 
 func retrieveStatus() int64 {
@@ -181,6 +185,4 @@ func waitForNextBlock(acctaddress string) {
 		currentHeight = retrieveStatus()
 		time.Sleep(50 * time.Millisecond)
 	}
-
-	setSequence(acctaddress)
 }
